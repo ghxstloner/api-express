@@ -1,4 +1,4 @@
-import Warehouse from '../models/warehouses.model.js';
+import Warehouse from '../models/warehouse/warehouse.model.js';
 
 export const getWarehouses = async (req, res) => {
   try {
