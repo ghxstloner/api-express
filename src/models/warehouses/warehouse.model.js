@@ -1,5 +1,5 @@
 import { DataTypes } from 'sequelize';
-import sequelize from '../../libs/sequelize.js'; 
+import sequelize from '../../libs/sequelize.js';
 
 const Warehouse = sequelize.define('Warehouse', {
   id: {

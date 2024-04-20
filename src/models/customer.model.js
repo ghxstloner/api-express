@@ -2,6 +2,11 @@ import { DataTypes } from 'sequelize';
 import sequelize from '../libs/sequelize.js';
 
 const Customer = sequelize.define('Customer', {
+  cod_cliente: {
+    type: DataTypes.STRING,
+    primaryKey: true,
+    field: 'cod_cliente'
+  },
   id: {
     type: DataTypes.STRING,
     primaryKey: true,
@@ -51,10 +56,18 @@ const Customer = sequelize.define('Customer', {
     type: DataTypes.STRING,
     field: 'tipo_contribuyente'
   },
+  provincia: {
+    type: DataTypes.STRING,
+    field: 'direccion_nivel1' 
+  },
+  distrito: {
+    type: DataTypes.STRING,
+    field: 'direccion_nivel2'
+  },
   corregimiento: {
     type: DataTypes.STRING,
-    field: 'direccion_corregimiento'
-  }
+    field: 'direccion_nivel3'
+  },
 }, {
   tableName: 'clientes',
   timestamps: false,

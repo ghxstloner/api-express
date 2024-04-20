@@ -1,36 +1,60 @@
-import { DataTypes } from 'sequelize';
-import { sequelize } from '../../db.js';
+import { Model, DataTypes } from 'sequelize';
+import sequelize from '../../libs/sequelize.js';
 
-const Product = sequelize.define('Product', {
-  id_item: {
+class Product extends Model {}
+
+Product.init({
+  idItem: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true,
+    field: 'id_item'
   },
-  cod_item: {
-    type: DataTypes.STRING,
+  codItem: {
+    type: DataTypes.STRING(20),
+    field: 'referencia'
   },
-  familia1: {
-    type: DataTypes.STRING,
+  description: {
+    type: DataTypes.STRING(150),
+    field: 'descripcion1'
   },
-  familia2: {
-    type: DataTypes.STRING,
+  costActual: {
+    type: DataTypes.DECIMAL(10, 2),
+    field: 'costo_actual'
   },
-  descripcion1: {
-    type: DataTypes.STRING,
+  costAverage: {
+    type: DataTypes.DECIMAL(10, 2),
+    field: 'costo_promedio'
   },
-  descripcion2: {
-    type: DataTypes.STRING,
+  price: {
+    type: DataTypes.DECIMAL(10, 2),
+    field: 'precio1'
   },
-  codigo_fabricante: {
-    type: DataTypes.STRING,
+  bulkQuantity: {
+    type: DataTypes.DECIMAL(9, 2),
+    field: 'cantidad_bulto'
   },
-  tipo_item: {
-    type: DataTypes.STRING,
+  bulkWeight: {
+    type: DataTypes.DECIMAL(9, 2),
+    field: 'kilos_bulto'
+  },
+  iva: {
+    type: DataTypes.DECIMAL(10, 2),
+    field: 'iva'
+  },
+  packUnit: {
+    type: DataTypes.STRING(40),
+    field: 'unidad_empaque'
+  },
+  barcode: {
+    type: DataTypes.STRING(50),
+    field: 'codigo_barras'
   },
 }, {
+  sequelize,
+  modelName: 'Product',
   tableName: 'item',
-  timestamps: false, 
+  timestamps: false
 });
 
 export default Product;
