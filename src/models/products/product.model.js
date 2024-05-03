@@ -1,5 +1,7 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../../libs/sequelize.js';
+import { notifyProductUpdateDirect } from '../../controllers/webhooks.controller.js';
+import WarehouseStock from '../warehouses/warehouseStock.model.js';
 
 class Product extends Model {}
 
@@ -10,8 +12,8 @@ Product.init({
     autoIncrement: true,
     field: 'id_item'
   },
-  codItem: {
-    type: DataTypes.STRING(20),
+  sku: {  
+    type: DataTypes.STRING(50), 
     field: 'referencia'
   },
   description: {
@@ -54,7 +56,31 @@ Product.init({
   sequelize,
   modelName: 'Product',
   tableName: 'item',
-  timestamps: false
+  timestamps: false,
+  hooks: {
+    afterUpdate: async (product, options) => {
+      const stockData = await WarehouseStock.findAll({
+        where: { idItem: product.idItem },
+        attributes: ['codAlmacen', 'cantidad']
+      });
+
+      const productData = {
+        id: product.idItem,
+        code: product.sku,
+        price: product.price,
+        description: product.description,
+        stock: stockData.map(stock => ({
+          codAlmacen: stock.codAlmacen,
+          cantidad: stock.cantidad
+        }))
+      };
+
+      await notifyProductUpdateDirect(productData);
+    }
+  }
 });
+
+Product.hasMany(WarehouseStock, { foreignKey: 'idItem' });
+WarehouseStock.belongsTo(Product, { foreignKey: 'idItem' });
 
 export default Product;

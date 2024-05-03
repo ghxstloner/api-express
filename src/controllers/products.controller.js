@@ -9,7 +9,7 @@ export const getProducts = async (req, res) => {
     try {
         const whereClause = {};
         if (sku) {
-            whereClause.cod_item = sku;
+            whereClause.sku = sku;
         }
 
         const products = await Product.findAll({
@@ -30,7 +30,7 @@ export const getProducts = async (req, res) => {
 
         res.json(products.map(product => ({
             ...product.get({ plain: true }),
-            stockTotal: parseFloat(product.dataValues.stockTotal) // Convertir a número, si necesario
+            stockTotal: parseFloat(product.dataValues.stockTotal)
         })));
     } catch (error) {
         res.status(500).json({

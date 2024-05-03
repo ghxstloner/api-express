@@ -1,111 +1,437 @@
-import db from '../libs/sequelize';
-import Order from '../models/order.model'; // Asegúrate de que la ruta del modelo es correcta
+import { QueryTypes } from "sequelize";
+import { randomUUID } from "crypto";
+import CustomersService from "./customer.service.js";
+import sequelize from "../libs/sequelize.js";
+import selectraConfPymeDb from "../libs/selectraConf.js";
+import logger from "../libs/logger.js";
 
-const onSave = async (req, res) => {
-    const {
-        id, tipoFactura, idCliente, codVendedor, idSucursal, fecha, subtotal, descuentosItemPedido,
-        montoItemsPedido, totalIva, total, cantidadItems, totalizarSubtotal, totalizarDescuentoParcial,
-        totalizarTotalOperacion, totalizarPDescuentoGlobal, totalizarDescuentoGlobal, totalizarBaseImponible,
-        totalizarMontoIva, totalizarTotalGeneral, totalizarTotalRetencion, idFormaPago, validarStock,
-        facturarA, rifCliente, direccion, telefono, paisId, facturaDetalleFormaPago
-    } = req.body;
+class OrderService {
+  constructor() {}
 
-    const codEstatus = procesar === 1 ? '2' : '1';
-
-    // Calcular el subtotal FOB y actualizar los totales
-    const subtotalFob = transpasoSalida + transporte + empaques + seguro + flete + comisiones + manejo + otros;
-    subtotal += subtotalFob;
-    totalizarBaseImponible += subtotalFob;
-    totalizarTotalGeneral += subtotalFob;
-
-    // Condición si se necesita calcular un monto específico para el control de crédito
-    let totalizarMontoCxc = formapagoDetalle.totalizarMontoCxc || 0;
-
-    // Actualizar datos del cliente si hay cambios significativos
-    const { direccion: clienteDireccion, telefono: clienteTelefono, pais: clientePais } = await db.models.Cliente.findByPk(idCliente);
-    let direccionFinal = facturarARucOriginal !== facturarARuc ? direccion : clienteDireccion;
-    let telefonoFinal = facturarARucOriginal !== facturarARuc ? telefono : clienteTelefono;
-    let paisFinal = facturarARucOriginal !== facturarARuc ? paisId : clientePais;
-
+  async create(data) {
+    const t = await sequelize.transaction();
 
     try {
-        const transaction = await db.transaction();
+      const idPedido = randomUUID();
+      const todayComplete = new Date();
+      const today = todayComplete.toISOString().split("T")[0];
+      const sequelizeConn = sequelize;
+      const pad = (number) => (number < 10 ? `0${number}` : number);
+      const formattedToday = `${todayComplete.getFullYear()}-${pad(
+        todayComplete.getMonth() + 1
+      )}-${pad(todayComplete.getDate())} ${pad(todayComplete.getHours())}:${pad(
+        todayComplete.getMinutes()
+      )}:${pad(todayComplete.getSeconds())}`;
 
-        // Verificación de stock si es necesario
-        if (validarStock.toUpperCase() === "SI") {
-            const itemsPromocion = req.body.detalle.filter(item => item._itemPromocion === 'combo');
-            for (let i = 0; i < req.body.detalle.length; i++) {
-                if (itemsPromocion.includes(req.body.detalle[i])) {
-                    continue; // Si el item es parte de una promoción tipo 'combo', se salta la verificación de stock
-                }
+      logger.info("Creando pedido con ID: " + idPedido);
+      const customer = await CustomersService.findOne(data.id_cliente);
+      const usuarioCreacion = await this.obtenerUsuarioCreacion(
+        data.cod_vendedor,
+        sequelizeConn,
+        selectraConfPymeDb
+      );
+      const facturarA = `${customer.dataValues.name}`;
+      const facturarARuc = customer.dataValues.ruc;
+      const facturarADireccion = customer.dataValues.address;
+      const facturarATelefono = customer.dataValues.phone;
+      const facturarAEmail = customer.dataValues.email;
+      const facturarAPais = customer.dataValues.pais;
+      const parametrosGenerales = await sequelizeConn.query(
+        "SELECT sucursal_id FROM parametros_generales"
+      );
 
-                // Aquí deberías tener lógica para verificar el stock real desde la base de datos
-                const stockComprometido = 0; // Esta variable debe ser calculada
-                const stockSumar = id ? 0 : 0; // Esta variable debe ser calculada según si es una edición o una nueva inserción
-                const stockDisponible = 100; // Suponemos que hay 100 unidades disponibles como ejemplo
+      const paramGenSucursalId = parametrosGenerales[0][0].sucursal_id;
 
-                if ((req.body.detalle[i]._itemCantidadTotal + stockComprometido) > (stockDisponible + stockSumar)) {
-                    await transaction.rollback();
-                    return res.status(400).json({
-                        success: false,
-                        message: `La cantidad ingresada para el item N° ${i + 1} excede la disponibilidad.`
-                    });
-                }
-            }
+      const sucursalDats = await sequelizeConn.query(
+        "SELECT codigo FROM sucursal WHERE id = :paramGenSucursalId",
+        {
+          replacements: { paramGenSucursalId: paramGenSucursalId },
+          type: QueryTypes.SELECT,
+        }
+      );
+
+      const sucursalCodParamGen = sucursalDats[0].codigo;
+
+      const correlativoPedido = await sequelizeConn.query(
+        "SELECT contador, formato FROM correlativos WHERE id=17"
+      );
+      const cod_pedido = correlativoPedido[0][0].contador;
+      const formatoPedidoLength = correlativoPedido[0][0].formato.length;
+      const codPedido = cod_pedido
+        .toString()
+        .padStart(formatoPedidoLength, "0");
+
+      let totalGanancias = 0;
+      let totalPorcentajeGanancia = 0;
+
+      for (const detalle of data.detalle) {
+        const datosItem = await this.obtenerDatosItem(
+          detalle.id_item,
+          sequelizeConn
+        );
+        const costo = parseFloat(datosItem.costo).toFixed(2);
+        const precioSinIVA = parseFloat(detalle.precio_sin_iva).toFixed(2);
+        const cantidad = parseInt(detalle.cantidad);
+
+        if (isNaN(costo) || isNaN(precioSinIVA) || isNaN(cantidad)) {
+          console.error("Error: uno de los valores no es un número.", {
+            costo,
+            precioSinIVA,
+            cantidad,
+          });
+          continue;
         }
 
-        // Continuar con la creación o actualización del pedido
-        const codEstatus = procesar === 1 ? '2' : '1';
+        const gananciaPorProducto = (precioSinIVA - costo) * cantidad;
+        detalle.ganancia = gananciaPorProducto;
+        totalGanancias += gananciaPorProducto;
 
-        // Calcular el subtotal FOB y actualizar los totales
-        const subtotalFob = transpasoSalida + transporte + empaques + seguro + flete + comisiones + manejo + otros;
-        subtotal += subtotalFob;
-        totalizarBaseImponible += subtotalFob;
-        totalizarTotalGeneral += subtotalFob;
+        const porcentajeGananciaPorProducto =
+          costo !== 0 ? (gananciaPorProducto / (costo * cantidad)) * 100 : 0;
+        detalle.porcentajeGanancia = porcentajeGananciaPorProducto;
 
-        // Condición si se necesita calcular un monto específico para el control de crédito
-        let totalizarMontoCxc = formapagoDetalle.totalizarMontoCxc || 0;
+        totalPorcentajeGanancia += porcentajeGananciaPorProducto;
+      }
 
-        // Actualizar datos del cliente si hay cambios significativos
-        const { direccion: clienteDireccion, telefono: clienteTelefono, pais: clientePais } = await db.models.Cliente.findByPk(idCliente);
-        let direccionFinal = facturarARucOriginal !== facturarARuc ? direccion : clienteDireccion;
-        let telefonoFinal = facturarARucOriginal !== facturarARuc ? telefono : clienteTelefono;
-        let paisFinal = facturarARucOriginal !== facturarARuc ? paisId : clientePais;
-
-        const updatedOrder = await db.transaction(async transaction => {
-            if (id) {
-                // Actualización del pedido existente
-                return await Order.update({
-                    tipoFactura, idCliente, codVendedor, idSucursal, fecha,
-                    subtotal, descuentosItemPedido, montoItemsPedido, totalIva, total,
-                    cantidadItems, totalizarSubtotal, totalizarDescuentoParcial, totalizarTotalOperacion,
-                    totalizarPDescuentoGlobal, totalizarDescuentoGlobal, totalizarBaseImponible,
-                    totalizarMontoIva, totalizarTotalGeneral, totalizarTotalRetencion,
-                    codEstatus, direccion: direccionFinal, telefono: telefonoFinal, paisId: paisFinal
-                }, { where: { id }, transaction });
-            } else {
-                // Creación de un nuevo pedido
-                return await Order.create({
-                    tipoFactura, idCliente, codVendedor, idSucursal, fecha,
-                    subtotal, descuentosItemPedido, montoItemsPedido, totalIva, total,
-                    cantidadItems, totalizarSubtotal, totalizarDescuentoParcial, totalizarTotalOperacion,
-                    totalizarPDescuentoGlobal, totalizarDescuentoGlobal, totalizarBaseImponible,
-                    totalizarMontoIva, totalizarTotalGeneral, totalizarTotalRetencion,
-                    codEstatus, direccion: direccionFinal, telefono: telefonoFinal, paisId: paisFinal
-                }, { transaction });
-            }
-        });
+      const record = await sequelizeConn.query(
+        "INSERT INTO pedido (" +
+          "id_pedido, " +
+          "cod_pedido, " +
+          "id_cliente, " +
+          "cod_vendedor, " +
+          "fechaPedido, " +
+          "subtotal, " +
+          "montoItemsPedido, " +
+          "ivaTotalPedido, " +
+          "TotalTotalPedido, " +
+          "cantidad_items, " +
+          "totalizar_sub_total, " +
+          "totalizar_total_operacion, " +
+          "totalizar_base_imponible, " +
+          "totalizar_monto_iva, " +
+          "totalizar_total_general, " +
+          "cod_estatus, " +
+          "validar_stock, " +
+          "fecha_creacion, " +
+          "fecha_vencimiento, " +
+          "usuario_creacion, " +
+          "estatus_pedido, " +
+          "serie_sucursal, " +
+          "id_sucursal, " +
+          "facturar_a, " +
+          "facturar_a_ruc, " +
+          "facturar_a_direccion, " +
+          "facturar_a_telefono, " +
+          "facturar_a_email, " +
+          "facturar_a_pais, " +
+          "total_porcentaje_ganancia, " +
+          "total_monto_ganancia_total, " +
+          "observacion, " +
+          "termino_pago_id, " +
+          "tipo_pedido" +
+          ") VALUES (" +
+          ":id, " +
+          ":codPedido, " +
+          ":idCliente, " +
+          ":codVendedor, " +
+          ":fechaPedido, " +
+          ":subTotal, " +
+          ":montoItemsPedido, " +
+          ":ivaTotalPedido, " +
+          ":TotalTotalPedido, " +
+          ":cantidadItems, " +
+          ":totalizarSubTotal, " +
+          ":totalizarTotalOperacion, " +
+          ":totalizarBaseImponible, " +
+          ":totalizarMontoIva, " +
+          ":totalizarTotalGeneral, " +
+          ":codEstatus, " +
+          ":validarStock, " +
+          ":fechaCreacion, " +
+          ":fechaVencimiento, " +
+          ":usuarioCreacion, " +
+          ":estatusPedido, " +
+          ":serieSucursal, " +
+          ":idSucursal, " +
+          ":facturarA, " +
+          ":facturarARuc, " +
+          ":facturarADireccion, " +
+          ":facturarATelefono, " +
+          ":facturarAEmail, " +
+          ":facturarAPais, " +
+          ":totalPorcentajeGanancia, " +
+          ":totalMontoGananciaTotal, " +
+          ":observacion, " +
+          ":terminoPagoId, " +
+          ":tipoPedido" +
+          ")",
+        {
+          replacements: {
+            id: idPedido,
+            codPedido: codPedido,
+            idCliente: customer.dataValues.id,
+            codVendedor: data.cod_vendedor,
+            fechaPedido: data.fechaPedido,
+            subTotal: data.subtotal,
+            montoItemsPedido: data.subtotal,
+            ivaTotalPedido: data.ivaTotalPedido,
+            TotalTotalPedido: data.TotalTotalPedido,
+            cantidadItems: data.detalle.length,
+            totalizarSubTotal: data.subtotal,
+            totalizarTotalOperacion: data.TotalTotalPedido,
+            totalizarBaseImponible: data.subtotal,
+            totalizarMontoIva: data.ivaTotalPedido,
+            totalizarTotalGeneral: data.TotalTotalPedido,
+            codEstatus: 1,
+            validarStock: "SI",
+            fechaCreacion: formattedToday,
+            fechaVencimiento: data.fechaVencimiento,
+            usuarioCreacion: usuarioCreacion,
+            estatusPedido: 1,
+            serieSucursal: sucursalCodParamGen,
+            idSucursal: paramGenSucursalId,
+            facturarA: facturarA,
+            facturarARuc: facturarARuc,
+            facturarADireccion: facturarADireccion,
+            facturarATelefono: facturarATelefono,
+            facturarAEmail: facturarAEmail,
+            facturarAPais: facturarAPais,
+            totalPorcentajeGanancia: totalPorcentajeGanancia,
+            totalMontoGananciaTotal: totalGanancias,
+            observacion: data.observacion,
+            terminoPagoId: 3,
+            tipoPedido: "shop",
+          },
+          type: QueryTypes.INSERT,
+        }
+      );
     
-        return res.status(200).json({
-            success: true,
-            message: 'Pedido procesado correctamente',
-            order: updatedOrder
-        });
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Error al procesar el pedido',
-            error: error.message
-        });
+      if (record) {
+        logger.info("Pedido creado exitosamente con ID: " + idPedido);
+      } else {
+        logger.error("No se logró crear el pedido con ID: " + idPedido);
+      }
+
+      if (record) {
+        await sequelizeConn.query(
+          "UPDATE correlativos SET contador = contador+1  WHERE id=17"
+        );
+      }
+
+      for (const detalle of data.detalle) {
+        const idPedidoDet = randomUUID();
+        const codItem = await this.obtenerCodItem(
+          detalle.id_item,
+          sequelizeConn
+        );
+
+        const totalSinIva =
+          parseFloat(detalle.precio_sin_iva) * detalle.cantidad;
+        const totalConIva = parseFloat(detalle.total_con_iva);
+
+        const datosItem = await this.obtenerDatosItem(
+          detalle.id_item,
+          sequelizeConn
+        );
+
+        const record = await sequelizeConn.query(
+          "INSERT INTO pedido_detalle (" +
+            "id_detalle_pedido, " +
+            "id_pedido, " +
+            "id_item, " +
+            "cod_item, " +
+            "_item_almacen, " +
+            "_item_descripcion, " +
+            "_item_cantidad, " +
+            "_item_preciosiniva, " +
+            "_item_piva, " +
+            "_item_totalsiniva, " +
+            "_item_totalconiva, " +
+            "_posee_serial, " +
+            "seriales_seleccionados, " +
+            "usuario_creacion, " +
+            "fecha_creacion, " +
+            "_item_cantidad_total, " +
+            "_unidad_empaque, " +
+            "_ganancia_item_individual, " +
+            "_item_unidad_empaque, " +
+            "_porcentaje_ganancia" +
+            ") VALUES (" +
+            ":idPedidoDet, " +
+            ":idPedido, " +
+            ":idItem, " +
+            ":codItem, " +
+            ":itemAlmacen, " +
+            ":itemDescripcion, " +
+            ":itemCantidad, " +
+            ":itemPreciosiniva, " +
+            ":itemItemPiva, " +
+            ":itemTotalsiniva, " +
+            ":itemTotalconiva, " +
+            "'YES', " +
+            "'N/A', " +
+            ":usuarioCreacion, " +
+            ":fechaCreacion, " +
+            ":itemCantidadTotal, " +
+            ":unidadEmpaque, " +
+            ":gananciaItemIndividual, " +
+            ":itemUnidadEmpaque, " +
+            ":porcentajeGanancia" +
+            ")",
+          {
+            replacements: {
+              idPedidoDet: randomUUID(),
+              idPedido: idPedido,
+              idItem: detalle.id_item,
+              codItem: codItem,
+              itemAlmacen: 1,
+              itemDescripcion: detalle.descripcion,
+              itemCantidad: detalle.cantidad,
+              itemPreciosiniva: detalle.precio_sin_iva,
+              itemItemPiva: datosItem.iva,
+              itemTotalsiniva: totalSinIva,
+              itemTotalconiva: totalConIva,
+              usuarioCreacion: usuarioCreacion,
+              fechaCreacion: formattedToday,
+              itemCantidadTotal: detalle.cantidad,
+              unidadEmpaque: datosItem.unidad_empaque,
+              gananciaItemIndividual: datosItem.ganancia,
+              itemUnidadEmpaque: datosItem.unidad_o_empaque,
+              porcentajeGanancia: datosItem.porcentaje_ganancia,
+            },
+            type: QueryTypes.INSERT,
+          }
+        );
+
+        if (record) {
+          logger.info(
+            "Pedido DETALLE creado exitosamente con ID: " + idPedidoDet
+          );
+        } else {
+          logger.error(
+            "No se logró crear el Pedido DETALLE con ID: " + idPedidoDet
+          );
+        }
+
+        await t.commit();
+        logger.info("Transacción completada exitosamente.");
+        return { success: true, message: "Pedido creado exitosamente" };
+      }
+        } catch (error) {
+          await t.rollback(); 
+          logger.error("Transacción fallida: ", error);
+          return { success: false, message: error.message, id: idPedido };
+      }
+  }
+
+  async getPedidos(bd, user) {
+    const sequelizeConn = await sequelize(bd);
+    let pedidos = await sequelizeConn.query(
+      "SELECT p.id_pedido, p.cod_pedido, p.fechaPedido, p.cantidad_items, p.TotalTotalPedido, concat(c.nombre,' ',c.apellido) as nombre FROM pedido p JOIN clientes c ON p.id_cliente = c.id_cliente WHERE p.usuario_creacion = :usuario ORDER BY p.fechaPedido DESC",
+      {
+        replacements: { usuario: user },
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    for (const pedido of pedidos) {
+      const pedidoDetalle = await sequelizeConn.query(
+        "SELECT _item_descripcion AS descripcion, _item_cantidad AS cantidad, _item_totalconiva AS totalConIva FROM pedido_detalle WHERE id_pedido = :idPedido",
+        {
+          replacements: { idPedido: pedido.id_pedido },
+          type: QueryTypes.SELECT,
+        }
+      );
+      pedido.items = pedidoDetalle;
     }
-};
+
+    return pedidos;
+  }
+
+  async obtenerDatosItem(idItem, sequelizeConn) {
+    try {
+      const itemData = await sequelizeConn.query(
+        "SELECT cod_item, unidad_empaque, costo_actual AS costo, utilidad1 AS ganancia, (utilidad1 / costo_actual * 100) AS porcentaje_ganancia, unidad_o_empaque, iva FROM item WHERE id_item = :idItem",
+        {
+          replacements: { idItem },
+          type: QueryTypes.SELECT,
+        }
+      );
+
+      if (itemData.length === 0) {
+        throw new Error(
+          "No se encontró el ítem para el id_item proporcionado."
+        );
+      }
+
+      return itemData[0];
+    } catch (error) {
+      console.error("Error al obtener datos del item: ", error.message);
+      throw error;
+    }
+  }
+
+  async obtenerUsuarioCreacion(codVendedor, sequelizeConn, selectraConfPymeDb) {
+    try {
+      const vendedorData = await sequelizeConn.query(
+        "SELECT cod_usuarios FROM vendedor WHERE cod_vendedor = :codVendedor",
+        {
+          replacements: { codVendedor },
+          type: QueryTypes.SELECT,
+        }
+      );
+
+      if (vendedorData.length === 0) {
+        throw new Error(
+          "No se encontró información del vendedor con el código proporcionado."
+        );
+      }
+
+      const codUsuarios = vendedorData[0].cod_usuarios;
+
+      const userData = await selectraConfPymeDb.query(
+        "SELECT usuario FROM usuarios WHERE cod_usuario = :codUsuarios",
+        {
+          replacements: { codUsuarios },
+          type: QueryTypes.SELECT,
+        }
+      );
+
+      if (userData.length === 0) {
+        throw new Error(
+          "No se encontró el usuario correspondiente al vendedor."
+        );
+      }
+
+      return userData[0].usuario;
+    } catch (error) {
+      console.error("Error al obtener el usuario de creación: ", error.message);
+      throw error;
+    }
+  }
+
+  async obtenerCodItem(idItem, sequelizeConn) {
+    try {
+      const itemData = await sequelizeConn.query(
+        "SELECT cod_item FROM item WHERE id_item = :idItem",
+        {
+          replacements: { idItem },
+          type: QueryTypes.SELECT,
+        }
+      );
+
+      if (itemData.length === 0) {
+        throw new Error(
+          "No se encontró el código del item para el id_item proporcionado."
+        );
+      }
+
+      return itemData[0].cod_item;
+    } catch (error) {
+      console.error("Error al obtener cod_item: ", error.message);
+      throw error;
+    }
+  }
+}
+
+export default new OrderService();

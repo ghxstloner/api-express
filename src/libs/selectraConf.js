@@ -11,7 +11,7 @@ export const selectraConfPymeDb = new Sequelize(
     host: process.env.DB_HOST,
     dialect: 'mysql',
     port: 3306,
-    logging: false, // true si quieres ver los logs de las consultas SQL
+    logging: false, 
   }
 );
 

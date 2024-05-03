@@ -1,0 +1,4 @@
+2024-05-02 14:03:45 [ERROR]: Error al realizar commit:  Transaction cannot be committed because it has been finished with state: commit
+2024-05-02 18:25:09 [ERROR]: Transacción fallida:  Customer not found
+2024-05-02 20:03:30 [ERROR]: Transacción fallida:  No se encontró el usuario correspondiente al vendedor.
+2024-05-02 20:07:49 [ERROR]: Transacción fallida:  No se encontró información del vendedor con el código proporcionado.

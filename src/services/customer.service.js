@@ -1,33 +1,32 @@
-import { Sequelize, DataTypes, QueryTypes } from 'sequelize';
+import { QueryTypes } from "sequelize";
 import sequelize from '../libs/sequelize.js';
-import crypto from 'crypto';
-import boom from '@hapi/boom';
 import Customer from '../models/customer.model.js';
+import boom from '@hapi/boom';
+import { randomUUID } from 'crypto';
 
 class CustomersService {
     constructor() {}
 
     async create(data) {
-        const idCliente = crypto.randomUUID();
+        const idCliente = randomUUID();
         const correlativoCliente = await sequelize.query(
             "SELECT contador, formato FROM correlativos WHERE id=8",
             { type: QueryTypes.SELECT }
         );
         const cod_cliente = correlativoCliente[0][0].contador;
         const formatoLength = correlativoCliente[0][0].formato.length;
-        const codCliente = cod_cliente.toString().padStart(formatoLength, "0");
+        const codCliente = cod_cliente.toString().padStart(formatoLength, '0');
 
-        // Preparing data for insertion
         const newData = {
-            id: idCliente,
-            name: data.name,
+            id_cliente: idCliente,
+            cod_cliente: codCliente,
+            nombre: data.name,
             email: data.email,
-            status: data.status,
-            phone: data.phone,
-            address: data.address,
-            city: data.city,
-            country: data.country,
-            ruc: data.ruc,
+            telefonos: data.phone,
+            direccion: data.address,
+            ciudad: data.city,
+            pais: data.country,
+            rif: data.ruc,
             dv: data.dv,
             tipo_cliente: data.tipo_cliente,
             tipo_contribuyente: data.tipo_contribuyente,
@@ -36,11 +35,11 @@ class CustomersService {
             corregimiento: data.corregimiento
         };
 
-        const record = await sequelize.models.Customer.create(newData);
+        const record = await Customer.create(newData);
 
         if (record) {
             await sequelize.query(
-                "UPDATE correlativos SET contador = contador+1 WHERE id=8",
+                "UPDATE correlativos SET contador = contador + 1 WHERE id=8",
                 { type: QueryTypes.UPDATE }
             );
         }
@@ -48,35 +47,34 @@ class CustomersService {
     }
 
     async find() {
-        const customers = await sequelize.models.Customer.findAll();
-        customers.forEach(customer => {
-            customer.dataValues.apenom = `${customer.name}`;
-        });
-        return customers;
+        const customers = await Customer.findAll();
+        return customers.map(customer => ({
+            ...customer.dataValues,
+            apenom: `${customer.nombre}`
+        }));
     }
 
-    async findOne(cod_cliente) {
-        const customer = await sequelize.models.Customer.findOne({
-            where: { cod_cliente }
+    async findOne(id_cliente) {
+        const customer = await Customer.findOne({
+            where: { id_cliente }
         });
         if (!customer) {
             throw boom.notFound("Customer not found");
         }
         return customer;
     }
-    
 
-    async update(id, changes) {
-        const customer = await this.findOne(id);
+    async update(cod_cliente, changes) {
+        const customer = await this.findOne(cod_cliente);
         const updatedCustomer = await customer.update(changes);
         return updatedCustomer;
     }
 
-    async delete(id) {
-        const customer = await this.findOne(id);
+    async delete(cod_cliente) {
+        const customer = await this.findOne(cod_cliente);
         await customer.destroy();
-        return { id };
+        return { cod_cliente };
     }
 }
 
-export default CustomersService;
+export default new CustomersService();
