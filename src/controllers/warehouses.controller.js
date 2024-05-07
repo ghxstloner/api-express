@@ -1,14 +1,26 @@
 import Warehouse from '../models/warehouses/warehouse.model.js';
+import sequelize from '../libs/sequelize.js';
 
 export const getWarehouses = async (req, res) => {
   try {
-    const warehouses = await Warehouse.findAll();
+    const codigosAlmacen = await sequelize.query(
+      "SELECT cod_almacen FROM exchanger_parametros_producto",
+      { type: sequelize.QueryTypes.SELECT }
+    );
+
+    const codigos = codigosAlmacen[0].cod_almacen.split(',');
+
+    const warehouses = await Warehouse.findAll({
+      where: {
+        id: codigos
+      }
+    });
+
     res.json(warehouses);
   } catch (error) {
     res.status(500).json({ message: "Error al obtener los almacenes", error: error.message });
   }
 };
-
 export const createWarehouse = async (req, res) => {
   try {
     const { cod_almacen, descripcion } = req.body;

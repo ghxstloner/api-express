@@ -1,5 +1,5 @@
-// models/warehouseStock.model.js
 import { Model, DataTypes } from 'sequelize';
+import Warehouse from './warehouse.model.js';
 import sequelize from '../../libs/sequelize.js';
 
 class WarehouseStock extends Model {}
@@ -20,8 +20,8 @@ WarehouseStock.init({
     field: 'id_item'
   },
   cantidad: {
-    type: DataTypes.DECIMAL(10, 2),
-    defaultValue: '0.00',
+    type: DataTypes.INTEGER,
+    defaultValue: '0',
     field: 'cantidad'
   },
 }, {
@@ -30,5 +30,8 @@ WarehouseStock.init({
   tableName: 'item_existencia_almacen',
   timestamps: false
 });
+
+WarehouseStock.belongsTo(Warehouse, { foreignKey: 'codAlmacen', as: 'Warehouse' });
+Warehouse.hasMany(WarehouseStock, { foreignKey: 'codAlmacen', as: 'WarehouseStocks' });
 
 export default WarehouseStock;

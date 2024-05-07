@@ -80,7 +80,7 @@ Product.init({
   }
 });
 
-Product.hasMany(WarehouseStock, { foreignKey: 'idItem' });
-WarehouseStock.belongsTo(Product, { foreignKey: 'idItem' });
+Product.hasMany(WarehouseStock, { foreignKey: 'idItem', as: 'WarehouseStocks'});
+WarehouseStock.belongsTo(Product, { foreignKey: 'idItem', as: 'Product' });
 
 export default Product;

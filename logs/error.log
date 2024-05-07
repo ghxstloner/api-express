@@ -2,3 +2,7 @@
 2024-05-02 18:25:09 [ERROR]: Transacción fallida:  Customer not found
 2024-05-02 20:03:30 [ERROR]: Transacción fallida:  No se encontró el usuario correspondiente al vendedor.
 2024-05-02 20:07:49 [ERROR]: Transacción fallida:  No se encontró información del vendedor con el código proporcionado.
+2024-05-07 01:08:09 [ERROR]: Transacción fallida:  No se encontró información del vendedor con el código proporcionado.
+2024-05-07 02:27:44 [ERROR]: Transacción fallida:  No se encontró información del vendedor con el código proporcionado.
+2024-05-07 02:28:08 [ERROR]: Transacción fallida:  No se encontró información del vendedor con el código proporcionado.
+2024-05-07 02:28:24 [ERROR]: Transacción fallida:  Cannot read properties of undefined (reading 'cod_usuarios')

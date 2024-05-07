@@ -25,11 +25,12 @@ class OrderService {
 
       logger.info("Creando pedido con ID: " + idPedido);
       const customer = await CustomersService.findOne(data.id_cliente);
-      const usuarioCreacion = await this.obtenerUsuarioCreacion(
+      /* const usuarioCreacion = await this.obtenerUsuarioCreacion(
         data.cod_vendedor,
         sequelizeConn,
         selectraConfPymeDb
       );
+      */
       const facturarA = `${customer.dataValues.name}`;
       const facturarARuc = customer.dataValues.ruc;
       const facturarADireccion = customer.dataValues.address;
@@ -118,6 +119,7 @@ class OrderService {
           "estatus_pedido, " +
           "serie_sucursal, " +
           "id_sucursal, " +
+          "id_shop, " +
           "facturar_a, " +
           "facturar_a_ruc, " +
           "facturar_a_direccion, " +
@@ -153,6 +155,7 @@ class OrderService {
           ":estatusPedido, " +
           ":serieSucursal, " +
           ":idSucursal, " +
+          ":idShop, " +
           ":facturarA, " +
           ":facturarARuc, " +
           ":facturarADireccion, " +
@@ -186,10 +189,11 @@ class OrderService {
             validarStock: "SI",
             fechaCreacion: formattedToday,
             fechaVencimiento: data.fechaVencimiento,
-            usuarioCreacion: usuarioCreacion,
+            usuarioCreacion: "shopify",
             estatusPedido: 1,
             serieSucursal: sucursalCodParamGen,
             idSucursal: paramGenSucursalId,
+            idShop: 1,
             facturarA: facturarA,
             facturarARuc: facturarARuc,
             facturarADireccion: facturarADireccion,
@@ -291,7 +295,7 @@ class OrderService {
               itemItemPiva: datosItem.iva,
               itemTotalsiniva: totalSinIva,
               itemTotalconiva: totalConIva,
-              usuarioCreacion: usuarioCreacion,
+              usuarioCreacion: "shopify",
               fechaCreacion: formattedToday,
               itemCantidadTotal: detalle.cantidad,
               unidadEmpaque: datosItem.unidad_empaque,
@@ -380,12 +384,6 @@ class OrderService {
           type: QueryTypes.SELECT,
         }
       );
-
-      if (vendedorData.length === 0) {
-        throw new Error(
-          "No se encontró información del vendedor con el código proporcionado."
-        );
-      }
 
       const codUsuarios = vendedorData[0].cod_usuarios;
 

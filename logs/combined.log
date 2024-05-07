@@ -114,3 +114,15 @@
 2024-05-02 20:03:30 [ERROR]: Transacción fallida:  No se encontró el usuario correspondiente al vendedor.
 2024-05-02 20:07:49 [INFO]: Creando pedido con ID: e174c378-29e7-4943-9d70-f3bb79c90505
 2024-05-02 20:07:49 [ERROR]: Transacción fallida:  No se encontró información del vendedor con el código proporcionado.
+2024-05-07 01:08:09 [INFO]: Creando pedido con ID: cf9cb144-0ee7-4556-9a56-9140a2376b84
+2024-05-07 01:08:09 [ERROR]: Transacción fallida:  No se encontró información del vendedor con el código proporcionado.
+2024-05-07 02:27:44 [INFO]: Creando pedido con ID: ea4d07aa-aa1c-4c46-aa40-28ede6a60e76
+2024-05-07 02:27:44 [ERROR]: Transacción fallida:  No se encontró información del vendedor con el código proporcionado.
+2024-05-07 02:28:08 [INFO]: Creando pedido con ID: d7e9aabe-d566-4631-a564-c6ac86713ccf
+2024-05-07 02:28:08 [ERROR]: Transacción fallida:  No se encontró información del vendedor con el código proporcionado.
+2024-05-07 02:28:24 [INFO]: Creando pedido con ID: bb9cf413-9051-4ede-8adc-c30c6c7433f2
+2024-05-07 02:28:24 [ERROR]: Transacción fallida:  Cannot read properties of undefined (reading 'cod_usuarios')
+2024-05-07 02:28:57 [INFO]: Creando pedido con ID: c186fbf9-5cf7-4ca9-906b-d420474156dd
+2024-05-07 02:28:57 [INFO]: Pedido creado exitosamente con ID: c186fbf9-5cf7-4ca9-906b-d420474156dd
+2024-05-07 02:28:57 [INFO]: Pedido DETALLE creado exitosamente con ID: a29b9d47-fb6e-432f-943b-f9c31ae13500
+2024-05-07 02:28:57 [INFO]: Transacción completada exitosamente.

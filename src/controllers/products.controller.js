@@ -1,4 +1,6 @@
 import Product from '../models/products/product.model.js'; 
+import WarehouseStock from '../models/warehouses/warehouseStock.model.js';
+import Warehouse from '../models/warehouses/warehouse.model.js';
 import sequelize from '../libs/sequelize.js';
 
 export const getProducts = async (req, res) => {
@@ -7,31 +9,54 @@ export const getProducts = async (req, res) => {
     const offset = (page - 1) * limit;
 
     try {
+        const allowedWarehouses = await sequelize.query(
+            "SELECT cod_almacen FROM exchanger_parametros_producto",
+            { type: sequelize.QueryTypes.SELECT }
+        );
+        const warehouseIds = allowedWarehouses[0].cod_almacen.split(',');
+
+        if (warehouseIds.length === 0) {
+            return res.status(404).json({ message: "No hay almacenes configurados definidos." });
+        }
+
         const whereClause = {};
         if (sku) {
             whereClause.sku = sku;
         }
 
-        const products = await Product.findAll({
+        let products = await Product.findAll({
             where: whereClause,
-            attributes: {
-                include: [
-                    [sequelize.literal(`(
-                        SELECT COALESCE(SUM(cantidad), 0)
-                        FROM item_existencia_almacen
-                        WHERE item_existencia_almacen.id_item = Product.id_item
-                    )`), 'stockTotal']
-                ]
-            },
+            include: [{
+                model: WarehouseStock,
+                as: 'WarehouseStocks',
+                attributes: ['codAlmacen', 'cantidad'],
+                include: [{
+                    model: Warehouse,
+                    as: 'Warehouse',
+                    attributes: ['name']
+                }],
+                where: {
+                    codAlmacen: warehouseIds
+                },
+                required: false
+            }],
             limit,
-            offset,
-            order: [['fecha_creacion', 'DESC']]
+            offset
         });
 
-        res.json(products.map(product => ({
-            ...product.get({ plain: true }),
-            stockTotal: parseFloat(product.dataValues.stockTotal)
-        })));
+        products = products.map(product => {
+            const plainProduct = product.get({ plain: true });
+            const stock = plainProduct.WarehouseStocks.map(stock => ({
+                id: stock.codAlmacen,
+                warehouse: stock.Warehouse ? stock.Warehouse.name : 'Unknown',
+                available: stock.cantidad
+            }));
+            delete plainProduct.WarehouseStocks;
+            plainProduct.stock = stock;
+            return plainProduct;
+        });
+
+        res.json(products);
     } catch (error) {
         res.status(500).json({
             message: "Error al obtener los productos",
