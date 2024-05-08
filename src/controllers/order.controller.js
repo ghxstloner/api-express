@@ -41,7 +41,7 @@ class OrderController {
           total_con_iva: line.total
         })),
         estado: data.status === "ACTIVE" ? 1 : 0,
-        formaPago: data.payment_gateway_names.join(', '),
+        metodo_pago: data.payment_gateway_names.join(', '),
         observacion: data.comments,
         usuario_creacion: 'UserID',  
         fecha_creacion: new Date()

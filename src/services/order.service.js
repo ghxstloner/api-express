@@ -117,6 +117,9 @@ class OrderService {
           "fecha_vencimiento, " +
           "usuario_creacion, " +
           "estatus_pedido, " +
+          "formapago, " +
+          "metodo_pago, " +
+          "id_caja, " +
           "serie_sucursal, " +
           "id_sucursal, " +
           "id_shop, " +
@@ -153,6 +156,9 @@ class OrderService {
           ":fechaVencimiento, " +
           ":usuarioCreacion, " +
           ":estatusPedido, " +
+          ":formaPago, " +
+          ":metodoPago, " +
+          ":idCaja, " +
           ":serieSucursal, " +
           ":idSucursal, " +
           ":idShop, " +
@@ -191,8 +197,11 @@ class OrderService {
             fechaVencimiento: data.fechaVencimiento,
             usuarioCreacion: "shopify",
             estatusPedido: 1,
-            serieSucursal: sucursalCodParamGen,
-            idSucursal: paramGenSucursalId,
+            formaPago: "contado",
+            metodoPago: data.metodo_pago,
+            idCaja: "9c49d6c8-9528-11ea-93b8-5820b10bae4f",
+            serieSucursal: "AE",
+            idSucursal: 13,
             idShop: 1,
             facturarA: facturarA,
             facturarARuc: facturarARuc,

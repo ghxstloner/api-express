@@ -1,6 +1,5 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../../libs/sequelize.js';
-import { notifyProductUpdateDirect } from '../../controllers/webhooks.controller.js';
 import WarehouseStock from '../warehouses/warehouseStock.model.js';
 
 class Product extends Model {}
@@ -75,7 +74,6 @@ Product.init({
         }))
       };
 
-      await notifyProductUpdateDirect(productData);
     }
   }
 });
