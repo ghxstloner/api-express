@@ -19,7 +19,10 @@ export const getProducts = async (req, res) => {
             return res.status(404).json({ message: "No hay almacenes configurados definidos." });
         }
 
-        const whereClause = {};
+        const whereClause = {
+            visible_web: 'T'
+        };           
+        
         if (sku) {
             whereClause.sku = sku;
         }
