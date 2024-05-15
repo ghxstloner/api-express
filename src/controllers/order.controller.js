@@ -13,10 +13,25 @@ class OrderController {
       ]
     });
     try {
-      const data = req.body;  // Datos recibidos en formato JSON
-      const idPedido = randomUUID();  // Generar un UUID para el nuevo pedido
+      const data = req.body;
+      const idPedido = randomUUID();
 
-      // Preparar los datos del pedido en la forma necesaria para el servicio
+      if (!data.orderno || !data.customer || !data.seller || !data.warehouse || !data.date || !data.sub_total || !data.taxes || !data.total || !data.lines || data.lines.length === 0) {
+        logger.error('Validation failed', { data });
+        return res.status(400).json({
+          message: "Falta información esencial para crear el pedido."
+        });
+      }
+
+      for (const line of data.lines) {
+        if (!line.id || line.qty === undefined || !line.description || line.price === undefined || line.discount === undefined || line.total === undefined) {
+          logger.error('Validation failed', { line });
+          return res.status(400).json({
+            message: "Falta información en los detalles del pedido."
+          });
+        }
+      }
+
       const orderData = {
         id_pedido: idPedido,
         cod_pedido: data.orderno,

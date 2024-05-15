@@ -47,6 +47,10 @@ export const getProducts = async (req, res) => {
             offset
         });
 
+        if (products.length === 0 && sku) {
+            return res.status(404).json({ message: "Producto no encontrado" });
+        }
+
         products = products.map(product => {
             const plainProduct = product.get({ plain: true });
             const stock = plainProduct.WarehouseStocks.map(stock => ({
@@ -123,8 +127,8 @@ export const deleteProducts = async (req, res) => {
 const productsController = {
     getProducts,
     createProducts,
-    updateProducts,
-    deleteProducts
+    // updateProducts,
+    // deleteProducts
 };
 
 export default productsController;

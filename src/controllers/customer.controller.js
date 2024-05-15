@@ -4,6 +4,9 @@ import sequelize from '../libs/sequelize.js';
 
 export const getCustomerByEmail = async (req, res) => {
   const { email } = req.query;
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    return res.status(400).json({ message: "Se requiere un email válido" });
+  }
   try {
     const customer = await Customer.findOne({
       where: { email },
@@ -45,6 +48,12 @@ export const getCustomerByEmail = async (req, res) => {
   
 
   export const createCustomer = async (req, res) => {
+    const { name, email, status, phone } = req.body;
+
+    if (!name || !email || !status || !phone) {
+      return res.status(400).json({ message: "Se requiere información completa: nombre, email y teléfono" });
+    }
+
     try {
       const { id, name, email, status, phone, address, city, country, ruc, dv, tipo_cliente, tipo_contribuyente, provincia, distrito, corregimiento } = req.body;
       const lastCustomerResult = await Customer.sequelize.query(

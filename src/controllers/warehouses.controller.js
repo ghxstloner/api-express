@@ -67,9 +67,9 @@ export const deleteWarehouse = async (req, res) => {
 
 const wareHouseController = {
     getWarehouses,
-    createWarehouse,
-    updateWarehouse,
-    deleteWarehouse
+    // createWarehouse,
+    // updateWarehouse,
+    // deleteWarehouse
 };
 
 export default wareHouseController;
