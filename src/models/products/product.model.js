@@ -50,9 +50,6 @@ Product.init({
   barcode: {
     type: DataTypes.STRING(50),
     field: 'codigo_barras'
-  },
-  visible_web:{
-    type: DataTypes.STRING(1)
   }
 }, {
   sequelize,

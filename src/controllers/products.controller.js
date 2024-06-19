@@ -2,6 +2,7 @@ import Product from '../models/products/product.model.js';
 import WarehouseStock from '../models/warehouses/warehouseStock.model.js';
 import Warehouse from '../models/warehouses/warehouse.model.js';
 import sequelize from '../libs/sequelize.js';
+import { Op } from 'sequelize';
 
 export const getProducts = async (req, res) => {
     const { page = 1, sku } = req.query;
@@ -20,9 +21,23 @@ export const getProducts = async (req, res) => {
         }
 
         const whereClause = {
-            visible_web: 'T'
-        };           
-        
+            [Op.or]: [
+                { visible_web: 'T' },
+                { visible_web: { [Op.is]: null } },
+                {
+                    [Op.and]: [
+                        { visible_web: 'F' },
+                        { 
+                            [Op.or]: [
+                                { unidad_empaque: 'SERV' },
+                                { unidad_o_empaque: 'SERV' }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
         if (sku) {
             whereClause.sku = sku;
         }
@@ -71,7 +86,6 @@ export const getProducts = async (req, res) => {
         });
     }
 };
-
 
 export const createProducts = async (req, res) => {
     try {
@@ -122,7 +136,6 @@ export const deleteProducts = async (req, res) => {
         });
     }
 };
-
 
 const productsController = {
     getProducts,
