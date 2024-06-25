@@ -1,4 +1,4 @@
-import Product from '../models/products/product.model.js'; 
+import Product from '../models/products/product.model.js';
 import WarehouseStock from '../models/warehouses/warehouseStock.model.js';
 import Warehouse from '../models/warehouses/warehouse.model.js';
 import sequelize from '../libs/sequelize.js';
@@ -68,19 +68,35 @@ export const getProducts = async (req, res) => {
 
         products = products.map(product => {
             const plainProduct = product.get({ plain: true });
+            plainProduct.offer_price = (parseFloat(plainProduct.price) * (1 - parseFloat(plainProduct.descuento1) / 100)).toFixed(2);
+
+            plainProduct.taxable = plainProduct.monto_exento === 0;
+
             const stock = plainProduct.WarehouseStocks.map(stock => ({
                 id: stock.codAlmacen,
                 warehouse: stock.Warehouse ? stock.Warehouse.name : 'Unknown',
                 available: stock.cantidad
             }));
+
+            const normalizedPackUnit = plainProduct.packUnit ? plainProduct.packUnit.trim().toUpperCase() : '';
+
+            if (normalizedPackUnit === "SERV") {
+                delete plainProduct.stock;
+            } else {
+                plainProduct.stock = stock;
+            }
+
             delete plainProduct.WarehouseStocks;
-            plainProduct.stock = stock;
+            delete plainProduct.coniva1;
+            delete plainProduct.descuento1;
+            delete plainProduct.monto_exento;
+
             return plainProduct;
         });
 
-        res.json(products);
+        return res.json(products);
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             message: "Error al obtener los productos",
             error: error.message
         });

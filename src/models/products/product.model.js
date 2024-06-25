@@ -19,17 +19,25 @@ Product.init({
     type: DataTypes.STRING(150),
     field: 'descripcion1'
   },
-  costActual: {
+  cost: {
     type: DataTypes.DECIMAL(10, 2),
     field: 'costo_actual'
-  },
-  costAverage: {
-    type: DataTypes.DECIMAL(10, 2),
-    field: 'costo_promedio'
   },
   price: {
     type: DataTypes.DECIMAL(10, 2),
     field: 'precio1'
+  },
+  coniva1: {
+    type: DataTypes.DECIMAL(10, 2),
+    field: 'coniva1'
+  },
+  descuento1: {
+    type: DataTypes.DECIMAL(10, 2),
+    field: 'descuento1'
+  },
+  monto_exento: {
+    type: DataTypes.INTEGER, // Asegúrate de que sea INTEGER o DECIMAL
+    field: 'monto_exento'
   },
   bulkQuantity: {
     type: DataTypes.DECIMAL(9, 2),
